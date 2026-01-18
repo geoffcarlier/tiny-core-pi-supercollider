@@ -23,3 +23,15 @@ Ultimately battery powered sound devices are the target.  Tiny Core offers an im
 - Raspberry pi zero w
 - SD Card
 - USB DAC (Terratek - AureonDualUSB)
+
+# Build SuperCollider
+Call card builder and follow instructions  
+`./mk-sdcard`  
+  
+Move card to pi and boot  
+`mount /mnt/mmcblk0p1`  
+`mv /mnt/mmcblk0p1/setup* .`  
+`./setup-build`  
+`sudo reboot`  
+`./setup-build`  
+`./mk-supersollider`  
