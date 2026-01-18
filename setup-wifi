@@ -1,0 +1,53 @@
+#!/bin/sh
+##################################################################
+#
+# Setup a raspi after first boot.
+#
+##################################################################
+
+
+########################## Setup Wifi ########################
+RUN_FLAG=/mnt/mmcblk0p1/wifi-run
+
+if ! grep "mmcblk0p1" /proc/mounts; then
+    echo "Mounting boot partition"
+    mount /mnt/mmcblk0p1
+fi
+
+if [ -f $RUN_FLAG ]; then
+    echo "WIFI setup already run"
+    sleep 2
+    exit 0
+fi
+
+echo "Moving WIFI libraries"
+mv /mnt/mmcblk0p1/*.tcz /mnt/mmcblk0p2/tce/optional/
+tce-load -i /mnt/mmcblk0p2/tce/optional/*.tcz
+
+mv /mnt/mmcblk0p1/wifi.db /home/tc
+
+echo "Setting password to allow ssh"
+SSH_PW=$(cat "/mnt/mmcblk0p1/ssh.txt")
+rm /mnt/mmcblk0p1/ssh.txt
+echo "tc:$SSH_PW" | sudo chpasswd
+
+echo "Setting WIFI libraries to load on boot"
+echo "firmware-rpi-wifi.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+echo "wifi.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+echo "wireless_tools.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+echo "wireless-6.12.25-piCore.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+echo "wpa_supplicant.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+echo "libnl.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+echo "readline.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+echo "ncurses.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+
+echo "Starting WIFI"
+sudo wifi.sh -a &> /home/tc/wifi.log &
+
+echo "Setting WIFI to load after boot"
+echo 'wifi.sh -a &> /home/tc/wifi.log' >> /mnt/mmcblk0p2/opt/bootlocal.sh
+echo "y" | backup
+
+echo "WIFI Setup done"
+sleep 2
+touch $RUN_FLAG

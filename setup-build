@@ -1,0 +1,40 @@
+#!/bin/sh
+##################################################################
+#
+# Setup a raspi after first boot.
+#
+##################################################################
+
+
+########################## Setup Wifi ########################
+set -e
+
+echo "Creating a SuperCollider build device."
+echo "System will need rebooting" 
+echo "Rerun this script until Done"
+
+# Setup things needed to start building.
+RUN_FLAG=/mnt/mmcblk0p1/build-run
+
+if ! grep "mmcblk0p1" /proc/mounts; then
+    echo "Mounting boot partition"
+    mount /mnt/mmcblk0p1
+fi
+
+if [ ! -f $RUN_FLAG ]; then
+    mv /mnt/mmcblk0p1/mk-supercollider /home/tc
+    echo "Setting system to persist opt and home"
+    sed -i 'ls/$/ opt=mmcblk0p2 home=mmcblk0p2/' "/mnt/mmcblk0p1/cmdline.txt"
+    sed -i '/^opt\b/d' /opt/.filetool.lst
+    sed -i '/^home\b/d' /opt/.filetool.lst
+    touch $RUN_FLAG
+fi
+
+./setup-disk
+./setup-resize
+./setup-wifi
+
+#echo "y" | backup
+
+echo "Setup complete"
+echo "Run ./mk-supersollider to build"

@@ -1,0 +1,71 @@
+#!/bin/sh
+##################################################################
+#
+# Setup a raspi after first boot.
+#
+##################################################################
+
+########################## Resize Disk ########################
+DISK="/dev/mmcblk0"
+PART_NUM=2
+TARGET_SIZE_MB=2048
+PART="${DISK}p${PART_NUM}"
+
+START_SECTOR=$(cat /sys/block/mmcblk0/$PART/start)
+SECTOR_SIZE=$(cat /sys/block/$(basename $DISK)/queue/hw_sector_size)
+SECTORS=$(( (TARGET_SIZE_MB * 1024 * 1024) / SECTOR_SIZE ))
+END_SECTOR=$(( START_SECTOR + SECTORS - 1 ))
+
+echo "Resizing partition 2 to 2GB..."
+
+fdisk "$DISK" <<EOF
+d
+2
+n
+p
+2
+$START_SECTOR
+$END_SECTOR
+w
+EOF
+
+echo "Running filesystem check..."
+e2fsck -f "$PART"
+
+#sudo reboot
+
+echo "Resizing filesystem..."
+resize2fs "$PART"
+
+echo "Partition 2 resized to 2GB successfully."
+
+########################## Setup Wifi ########################
+mount /mnt/mmcblk0p1
+mv /mnt/mmcblk0p1/*.tcz /mnt/mmvblk0p2/tce/optional/
+tce-load -i /mnt/mmvblk0p2/tce/optional/*.tcz
+
+mv /mnt/mmcblk0p1/wifi.db /home/tc
+wifi.sh -a &> /home/tc/wifi.log
+
+SSH_PW=$(cat "/mnt/mmncblk01/ssh.txt")
+
+echo "tc:$SSH_PW" | sudo chpasswd
+
+echo "firmware-rpi-wifi.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+echo "wifi.tcz" >> /mnt/mmcblk0p2/tce/onboot.lst
+
+for F in /mnt/mmvblk0p2/tce/optional/*.tcz; do
+  md5sum $F > ${F}.md5.txt
+done
+tce-audit updatedeps
+tce-update
+
+ech0 "wifi.sh -a &> /home/tc/wifi.log &" >> /opt/bootlocal.sh
+
+########################## Get ready for build ########################
+
+mv /mnt/mmcblk0p1/mk-supercollider /home/tc
+sed -i 'ls/$/ opt=mmcblk0p2 home=mmcblk0p2/' "/mnt/mmcblk0p1/cmdline.txt"
+backup
+
+#sudo reboot

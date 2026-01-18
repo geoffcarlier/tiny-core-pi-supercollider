@@ -1,0 +1,8 @@
+firmware-rpi-wifi
+wifi
+wireless_tools
+wireless-6.12.25-piCore
+wpa_supplicant
+libnl
+readline
+ncurses

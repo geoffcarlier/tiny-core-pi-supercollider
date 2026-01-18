@@ -1,0 +1,81 @@
+#!/bin/sh
+########################################################
+# 
+# Download SuperCollider code and dependencies and build
+#
+########################################################
+
+################### Get Dependencies ##################
+wget http://tinycorelinux.net/9.x/armv6/tcz/fftw-dev.tcz
+tce-load -il fftw-dev
+
+tce-load -wil \
+cmake \
+compiletc \
+squashfs-tools \
+avahi-dev \
+libsndfile-dev \
+libXt-dev.tcz \
+libxkbcommon-dev.tcz \
+libasound-dev.tcz \
+readline-dev \
+udev-lib-dev \
+libsamplerate-dev \
+jack-dev \
+git
+
+sudo /usr/sbin/cache-clear
+
+################### Get Code ##################
+cd /opt
+
+git clone --branch main \
+    --recurse-submodules \
+    --depth 1 \
+    https://github.com/SuperCollider/SuperCollider.git
+
+################### CMAKE ##################
+cd SuperCollider
+mkdir -p build && cd build
+
+cmake \
+-DSC_QT=OFF \
+-DCMAKE_BUILD_TYPE=Release \
+-DNATIVE=ON \
+-DBUILD_TESTING=OFF \
+-DSUPERNOVA=OFF \
+-DSC_IDE=OFF \
+-DNO_X11=ON \
+-DSC_QT=OFF \
+-DSC_ED=OFF \
+-DSC_EL=OFF \
+-DSC_VIM=ON \
+-DINSTALL_HELP=OFF \
+-DSC_ABLETON_LINK=OFF \
+-DCMAKE_C_FLAGS="-lncursesw" \
+-DCMAKE_CXX_FLAGS="-lncursesw" \
+-DCURSES_LIBRARY="/usr/local/lib/libncursesw.so" \
+-DCURSES_INCLUDE_PATH="/usr/local/lib/" \
+..
+
+################### MAKE ##################
+make
+
+sudo make install
+
+sudo ldconfig
+
+cat install_manifest.txt | grep -v "/usr/local/include/\|/usr/local/share/pixmaps/\|/usr/local/share/mime/" > /tmp/sc.list
+make clean
+
+################### Package ##################
+cd /tmp
+tar -T /tmp/sc.list -czvf /tmp/sc.tar.gz
+mkdir /tmp/pkg && cd /tmp/pkg
+tar -xf /tmp/sc.tar.gz
+cd ..
+mksquashfs pkg/ supercollider.tcz
+sudo mv supercollider.tcz ~
+rm -rf /tmp/pkg
+tce-load -i ~/supercollider.tcz
+sclang -h  #just to check that it is working

@@ -1,0 +1,27 @@
+#!/bin/sh
+##################################################################
+#
+# Setup a raspi after first boot.
+#
+##################################################################
+
+
+########################## Setup Wifi ########################
+
+RUN_FLAG=/mnt/mmcblk0p1/resize-run
+
+if ! grep "mmcblk0p1" /proc/mounts; then
+    mount /mnt/mmcblk0p1
+fi
+
+if [ -f $RUN_FLAG ]; then
+    echo "Resize setup already run"
+    sleep 2
+    exit 0
+fi
+
+
+
+touch $RUN_FLAG
+echo "Resizing filesystem..."
+sudo resize2fs "/dev/mmcblk0p2"

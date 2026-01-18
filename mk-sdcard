@@ -1,0 +1,75 @@
+#!/bin/bash
+
+#####################################################################
+#
+# Create a Tiny Core Build Image needed to build SuperCollider
+#
+#####################################################################
+
+ISO_URL=http://tinycorelinux.net/16.x/armhf/release/RPi/piCore-16.0.0.img.gz
+LIBS_URL=http://tinycorelinux.net/16.x/armhf/tcz
+ARCH=armv6
+
+DOWNLOAD_LIBS_DIR=~/Downloads/tc-libs
+DOWNLOAD_ISO_DIR=~/Downloads/tc-iso
+VOLUME_DIR=/Volumes/piCore_16
+
+mkdir -p $DOWNLOAD_LIBS_DIR 
+mkdir -p $DOWNLOAD_ISO_DIR
+
+if [ ! -f "$DOWNLOAD_ISO_DIR/$TC_VERSION.img.gz" ]; then
+    curl $TINY_CORE_HOME/$TC_BRANCH/armhf/release/RPi/piCore-$TC_VERSION.img.gz \
+        -o $DOWNLOAD_ISO_DIR/$TC_VERSION.img.gz
+else
+    echo "$DOWNLOAD_ISO_DIR/$TC_VERSION.img.gz already downloaded"
+fi
+
+cat wifi-libs-list.txt | while read LIB; do
+    if [ ! -f "$DOWNLOAD_LIBS_DIR/$LIB.tcz" ]; then
+        curl $LIBS_URL/$LIB.tcz \
+            -o $DOWNLOAD_LIBS_DIR/$LIB.tcz
+    else
+        echo "$DOWNLOAD_LIBS_DIR/$LIB.tcz already downloaded"
+    fi
+done
+sync
+
+IMAGE_PATH=`realpath $DOWNLOAD_ISO_DIR/$TC_VERSION.img.gz`
+
+# Give instruction for SDCard Burning
+printf "\n\nInsert SD Card into port and install the below iso:\n\
+- Rasberry Pi Imager is safe, free and recommended \n\n \
+$IMAGE_PATH \n \n \
+When Done, re-insert the card.\n
+"
+
+read -p "Press any key to continue"
+
+# Check card is inserted
+while [ ! -d $VOLUME_DIR ]; do
+    read -p "Card not inserted.  To retry, press any key or CTRL-C to exit"
+done
+
+# Collect wifi infomation
+read -p "Enter WIFI SID:" WIFI_SID
+read -p "Enter WIFI PW:" WIFI_PW
+read -p "Enter ssh password: " SSH_PW
+
+# Setup Card
+cat wifi-libs-list.txt | while read LIB; do
+    cp $DOWNLOAD_LIBS_DIR/$LIB.tcz $VOLUME_DIR
+done
+
+cp ./setup-disk $VOLUME_DIR
+cp ./setup-wifi $VOLUME_DIR
+cp ./setup-build $VOLUME_DIR
+cp ./setup-resize $VOLUME_DIR
+cp ./mk-supercollider $VOLUME_DIR
+
+
+printf "$WIFI_SID\t$WIFI_PW" > $VOLUME_DIR/wifi.db
+echo "$SSH_PW" > $VOLUME_DIR/ssh.txt
+
+sed -i '' 's/$/ opt=mmcblk0p2 home=mmcblk0p2/' "$VOLUME_DIR/cmdline.txt"
+
+echo "Eject Card and insert into Raspi, with monitor and keyboard attached."

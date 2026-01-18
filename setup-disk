@@ -1,0 +1,54 @@
+#!/bin/sh
+##################################################################
+#
+# Setup a raspi after first boot for resizing disk
+#
+##################################################################
+
+########################## Resize Disk ########################
+DISK="/dev/mmcblk0"
+PART_NUM=2
+TARGET_SIZE_MB=2048
+PART="/dev/mmcblk0p2"
+
+RUN_FLAG=/mnt/mmcblk0p1/disk-run
+
+if ! grep "mmcblk0p1" /proc/mounts; then
+    mount /mnt/mmcblk0p1
+fi
+
+if [ -f $RUN_FLAG ]; then
+    echo "DISK setup already run"
+    sleep 2
+    exit 0
+fi
+
+START_SECTOR=$(cat /sys/block/mmcblk0/mmcblk0p2/start)
+#SECTOR_SIZE=$(cat /sys/block/mmcblk0/queue/hw_sector_size)
+#SECTORS=$(((TARGET_SIZE_MB * 1024 * 1024) / SECTOR_SIZE ))
+#END_SECTOR=$(( START_SECTOR + SECTORS - 1 ))
+END_SECTOR=4194304
+
+mount /mnt/mmcblk0p1
+
+echo "Resizing partition 2 to 2GB [$START_SECTOR:$END_SECTOR]"
+
+sudo fdisk "$DISK" <<EOF
+d
+2
+n
+p
+2
+$START_SECTOR
+$END_SECTOR
+w
+EOF
+
+echo "Disk resized but needs boot for resize"
+echo "Please reboot"
+
+touch $RUN_FLAG
+exit 1
+#sleep 2
+#sudo reboot
+
