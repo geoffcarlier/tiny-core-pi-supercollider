@@ -35,3 +35,25 @@ Move card to pi and boot
 `sudo reboot`  
 `./setup-build`  
 `./mk-supersollider`  
+
+# Testing using Realtime
+Realtime has been tested using the following configuration file entry:  
+`/etc/cgconfig.conf`
+
+```
+group sysdefault {
+	perm {
+		task {
+			uid = root;
+			gid = root;
+		}
+		admin {
+			uid = root;
+			gid = root;
+		}
+	}
+	cpu {
+		cpu.rt_runtime_us = 950000;
+	}
+}
+```
