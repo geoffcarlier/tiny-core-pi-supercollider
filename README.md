@@ -56,4 +56,7 @@ group sysdefault {
 		cpu.rt_runtime_us = 950000;
 	}
 }
-```
+```  
+
+Supercollider (sclang) needs to be run as root
+
